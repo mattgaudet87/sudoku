@@ -60,7 +60,7 @@ src/
 
 ## Build status
 - [x] Phase 1: Scaffolding
-- [ ] Phase 2: Game logic and storage
+- [x] Phase 2: Game logic and storage
 - [ ] Phase 3: Game screen
 - [ ] Phase 4: Home, stats, win screen, settings
 - [ ] Phase 5: Deploy to Vercel
