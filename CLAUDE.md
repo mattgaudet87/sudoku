@@ -62,7 +62,7 @@ src/
 - [x] Phase 1: Scaffolding
 - [x] Phase 2: Game logic and storage
 - [x] Phase 3: Game screen
-- [ ] Phase 4: Home, stats, win screen, settings
+- [x] Phase 4: Home, stats, win screen, settings
 - [ ] Phase 5: Deploy to Vercel
 - [ ] Phase 6: Polish
 Update this checklist at the end of each phase.

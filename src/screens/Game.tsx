@@ -3,12 +3,14 @@ import { useEffect, useState } from 'react'
 import Board from '../components/Board'
 import NumberPad from '../components/NumberPad'
 import Toolbar from '../components/Toolbar'
-import { generatePuzzle, peers } from '../lib/sudoku'
+import { peers } from '../lib/sudoku'
 import {
   type GameState,
   clearGame,
+  createGame,
   loadGame,
   loadSettings,
+  loadStats,
   recordResult,
   saveGame,
 } from '../lib/storage'
@@ -20,23 +22,7 @@ type GameProps = {
 type Status = 'playing' | 'solved' | 'lost'
 
 function initGame(): GameState {
-  const saved = loadGame()
-  if (saved) return saved
-
-  const { puzzle, solution } = generatePuzzle('medium')
-  return {
-    schemaVersion: 1,
-    difficulty: 'medium',
-    puzzle,
-    solution,
-    entries: new Array(81).fill(0),
-    notes: Array.from({ length: 81 }, () => []),
-    elapsedSeconds: 0,
-    mistakes: 0,
-    hintsUsed: 0,
-    startedAt: new Date().toISOString(),
-    history: [],
-  }
+  return loadGame() ?? createGame('medium')
 }
 
 function isSolved(game: GameState): boolean {
@@ -56,6 +42,7 @@ export default function Game({ onHome }: GameProps) {
   // A loaded game is never solved or lost: commit() clears storage the
   // instant either happens, so a fresh load is always still in progress.
   const [status, setStatus] = useState<Status>('playing')
+  const [newBestTime, setNewBestTime] = useState(false)
   const [settings] = useState(loadSettings)
 
   // Persist immediately on mount too, so a brand-new game survives a reload
@@ -83,6 +70,8 @@ export default function Game({ onHome }: GameProps) {
     saveGame(next)
 
     if (isSolved(next)) {
+      const previousBest = loadStats()[next.difficulty].bestSeconds
+      setNewBestTime(previousBest === null || next.elapsedSeconds < previousBest)
       setStatus('solved')
       recordResult(next.difficulty, next.elapsedSeconds, true)
       clearGame()
@@ -94,6 +83,16 @@ export default function Game({ onHome }: GameProps) {
       recordResult(next.difficulty, next.elapsedSeconds, false)
       clearGame()
     }
+  }
+
+  function handlePlayAgain() {
+    const next = createGame(game.difficulty)
+    setGame(next)
+    saveGame(next)
+    setSelectedIndex(null)
+    setNotesMode(false)
+    setNewBestTime(false)
+    setStatus('playing')
   }
 
   function handleSelectCell(index: number) {
@@ -272,16 +271,29 @@ export default function Game({ onHome }: GameProps) {
         <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
           <p className="text-2xl font-medium text-gold">Solved</p>
           <p className="text-sm text-muted">Time {formatTime(game.elapsedSeconds)}</p>
-          <button type="button" onClick={onHome} className="mt-4 min-h-11 rounded-md border border-border bg-surface px-6 text-gold">
-            Home
-          </button>
+          <p className="text-sm text-muted">Mistakes {game.mistakes}</p>
+          <p className="text-sm text-muted">Hints used {game.hintsUsed}</p>
+          {newBestTime && <p className="mt-1 text-sm font-medium text-gold">New best time</p>}
+          <div className="mt-4 flex gap-3">
+            <button type="button" onClick={handlePlayAgain} className="min-h-11 rounded-md bg-gold px-6 font-medium text-background">
+              Play again
+            </button>
+            <button type="button" onClick={onHome} className="min-h-11 rounded-md border border-border bg-surface px-6 text-gold">
+              Home
+            </button>
+          </div>
         </div>
       ) : status === 'lost' ? (
         <div className="flex flex-1 flex-col items-center justify-center gap-2 text-center">
           <p className="text-2xl font-medium text-error">Out of strikes</p>
-          <button type="button" onClick={onHome} className="mt-4 min-h-11 rounded-md border border-border bg-surface px-6 text-gold">
-            Home
-          </button>
+          <div className="mt-4 flex gap-3">
+            <button type="button" onClick={handlePlayAgain} className="min-h-11 rounded-md bg-gold px-6 font-medium text-background">
+              Try again
+            </button>
+            <button type="button" onClick={onHome} className="min-h-11 rounded-md border border-border bg-surface px-6 text-gold">
+              Home
+            </button>
+          </div>
         </div>
       ) : (
         <>

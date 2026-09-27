@@ -1,4 +1,4 @@
-import type { Board, Difficulty } from './sudoku'
+import { generatePuzzle, type Board, type Difficulty } from './sudoku'
 
 const SCHEMA_VERSION = 1
 
@@ -109,6 +109,23 @@ function writeJSON(key: string, value: unknown): void {
   }
 }
 
+export function createGame(difficulty: Difficulty): GameState {
+  const { puzzle, solution } = generatePuzzle(difficulty)
+  return {
+    schemaVersion: SCHEMA_VERSION,
+    difficulty,
+    puzzle,
+    solution,
+    entries: new Array(81).fill(0),
+    notes: Array.from({ length: 81 }, () => []),
+    elapsedSeconds: 0,
+    mistakes: 0,
+    hintsUsed: 0,
+    startedAt: new Date().toISOString(),
+    history: [],
+  }
+}
+
 export function loadGame(): GameState | null {
   const game = readJSON<GameState>(GAME_KEY)
   if (!game || game.schemaVersion !== SCHEMA_VERSION) return null
@@ -194,6 +211,13 @@ export function currentStreak(stats: Stats, now: Date = new Date()): number {
   const yesterday = addDays(today, -1)
   if (lastWinDate === today || lastWinDate === yesterday) return current
   return 0
+}
+
+// Called when a new game starts (recordResult covers the finished-game case).
+export function setLastPlayedDifficulty(difficulty: Difficulty): void {
+  const stats = loadStats()
+  stats.lastPlayedDifficulty = difficulty
+  saveStats(stats)
 }
 
 export function recordResult(
